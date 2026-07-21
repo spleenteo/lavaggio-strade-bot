@@ -45,6 +45,17 @@ test('secret errato → 403', async () => {
   assert.equal((await worker.fetch(bad, env, ctx)).status, 403);
 });
 
+test('blob v1 in KV (feature senza schedule) → messaggio "formato vecchio"', async () => {
+  sent.length = 0;
+  const oldEnv = {
+    ...env,
+    STREETS_KV: { get: async () => ({ generatedAt: '2025-01-01', features: [{ via: 'VIA ROMA', viaId: 100 }] }) },
+  };
+  await worker.fetch(req({ message: { chat: { id: 9 }, text: '/info' } }), oldEnv, ctx);
+  await drain();
+  assert.ok(sent.at(-1).body.text.includes('formato vecchio'));
+});
+
 test('posizione → dettaglio tratto', async () => {
   sent.length = 0;
   await worker.fetch(req({ message: { chat: { id: 1 }, location: { latitude: 43.7701, longitude: 11.2551 } } }), env, ctx);

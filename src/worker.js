@@ -17,6 +17,9 @@ async function loadData(env) {
   if (!data || !Array.isArray(data.features)) {
     throw new Error('Dati non presenti in KV. Esegui build+push dei dati (vedi README).');
   }
+  if (data.features.length > 0 && !data.features[0].schedule) {
+    throw new Error('Dati KV in formato vecchio: esegui npm run build:data && npm run push:data');
+  }
   CACHE = { data, streets: buildIndex(data.features) };
   return CACHE;
 }

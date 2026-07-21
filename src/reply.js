@@ -9,6 +9,7 @@ function esc(s) {
 
 const SHORT_WD = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 const DISCLAIMER = '<i>Dati: open data Comune di Firenze (fonte Alia). Fa sempre fede il cartello in strada.</i>';
+const PARITY_CAVEAT = '⚠️ <i>Calendario a settimane alterne ("pari/dispari"): data indicativa, verifica il cartello.</i>';
 
 function hm(date) {
   const p = romeParts(date);
@@ -26,7 +27,7 @@ export function windowLabel(win, now) {
   const sameDay = s.y === n.y && s.m === n.m && s.d === n.d;
   const tom = addDays(n, 1);
   const isTomorrow = s.y === tom.y && s.m === tom.m && s.d === tom.d;
-  if (isNight && (sameDay || isTomorrow)) return `STANOTTE (${night}${range})`;
+  if (isNight && (sameDay || (isTomorrow && n.hh >= 6))) return `STANOTTE (${night}${range})`;
   if (sameDay) return `OGGI ${range}`;
   if (isTomorrow) return `domani ${range}`;
   return `${WEEKDAY_LABEL[s.weekday]} ${s.d} ${MONTHS[s.m - 1]} (${night}${range})`;
@@ -38,6 +39,7 @@ function windowLines(schedule, now) {
   const lines = [`🧹 Prossimo lavaggio: <b>${windowLabel(win, now)}</b>`];
   const after = nextWindow(schedule, win.end);
   if (after) lines.push(`📅 Poi: ${windowLabel(after, now)}`);
+  if (schedule.parity) lines.push(PARITY_CAVEAT);
   return lines;
 }
 
@@ -84,6 +86,7 @@ export function buildStreetReply(street, features, now) {
       const after = nextWindow(it.schedule, it.win.end);
       if (after) lines.push(`   <i>poi: ${windowLabel(after, now)}</i>`);
     }
+    if (it.schedule.parity) lines.push(PARITY_CAVEAT);
   }
   lines.push('', DISCLAIMER);
   return lines.join('\n');

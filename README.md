@@ -125,6 +125,12 @@ Il Comune aggiorna il calendario ogni tanto. Per rinfrescare i dati:
 npm run build:data && npm run push:data
 ```
 
+> ⚠️ **Upgrade dalla v1:** il Worker v2 richiede dati in formato v2 (ogni tratto con
+> `schedule` strutturato). Se in KV c'è ancora un blob v1, il Worker rifiuta di
+> partire con un errore esplicito ("formato vecchio"). Esegui sempre `npm run
+> push:data` **prima** di `npm run deploy`, così il Worker aggiornato trova già
+> i dati nel formato che si aspetta.
+
 **In automatico** (consigliato): usa la GitHub Action inclusa
 (`.github/workflows/refresh-data.yml`), che ogni lunedì rigenera e ricarica i dati.
 Va messo il progetto su un repo GitHub e configurati due *Secrets* nel repo

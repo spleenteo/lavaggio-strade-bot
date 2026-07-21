@@ -21,6 +21,33 @@ test('windowLabel: stanotte / in corso / oggi / data futura', () => {
   assert.equal(windowLabel(futura, NOW), 'martedì 4 agosto (notte lun→mar, 00:00–06:00)');
 });
 
+test('windowLabel: query notturna (00:00–05:59) non deve etichettare STANOTTE la finestra del giorno dopo', () => {
+  // Query mercoledì 01:00: la finestra che inizia alla mezzanotte SUCCESSIVA (giovedì 00:00–06:00)
+  // è "domani", non "stanotte" — altrimenti si confonde con la finestra di stanotte (mer 00:00, già passata).
+  const win = { start: romeDate(2026, 7, 23, 0, 0), end: romeDate(2026, 7, 23, 6, 0), ongoing: false };
+  const queryNotturna = romeDate(2026, 7, 22, 1, 0);
+  assert.equal(windowLabel(win, queryNotturna), 'domani 00:00–06:00');
+});
+
+test('caveat settimane alterne: presente con parity, assente senza', () => {
+  const paritySchedule = { weekday: 3, weeks: ALL, parity: 'even', start: '00:00', end: '06:00' };
+  const matchParity = { feature: feat('VIA PARI', 7000, 'DA A A B', paritySchedule), distanceMeters: 5 };
+  const trattoParityTxt = buildTrattoReply(matchParity, 60, NOW, false);
+  assert.ok(trattoParityTxt.includes('settimane alterne'));
+
+  const matchNoParity = { feature: feat('VIA DISPARI', 7001, 'DA A A B', notturnoMer), distanceMeters: 5 };
+  const trattoNoParityTxt = buildTrattoReply(matchNoParity, 60, NOW, false);
+  assert.ok(!trattoNoParityTxt.includes('settimane alterne'));
+
+  const streetParity = { viaId: 7000, via: 'VIA PARI', searchName: 'via pari', tratti: [0] };
+  const streetParityTxt = buildStreetReply(streetParity, [feat('VIA PARI', 7000, 'DA A A B', paritySchedule)], NOW);
+  assert.ok(streetParityTxt.includes('settimane alterne'));
+
+  const streetNoParity = { viaId: 7001, via: 'VIA DISPARI', searchName: 'via dispari', tratti: [0] };
+  const streetNoParityTxt = buildStreetReply(streetNoParity, [feat('VIA DISPARI', 7001, 'DA A A B', notturnoMer)], NOW);
+  assert.ok(!streetNoParityTxt.includes('settimane alterne'));
+});
+
 test('buildTrattoReply: dettaglio con tratto, raw e prossime finestre', () => {
   const match = { feature: feat('VIA MASACCIO', 9800, 'DA MIRANDOLA A LA FARINA', notturnoMer), distanceMeters: 12 };
   const txt = buildTrattoReply(match, 60, NOW, false);

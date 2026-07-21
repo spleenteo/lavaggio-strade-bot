@@ -15,7 +15,7 @@ npm run push:data:local     # come sopra ma su KV locale (per `npm run dev`)
 npm run deploy              # wrangler deploy
 npm run dev                # wrangler dev (Worker in locale)
 npm run set-webhook        # registra il webhook Telegram (vedi variabili sotto)
-npm test                   # node --test 'test/**/*.test.mjs' — runner nativo Node, zero dipendenze
+npm test                   # node --test (auto-discovery) — runner nativo Node, zero dipendenze, compatibile Node 18+
 ```
 
 - `set-webhook` legge `BOT_TOKEN`, `WORKER_URL`, `WEBHOOK_SECRET` dall'ambiente; `node scripts/set-webhook.mjs delete` rimuove il webhook.
