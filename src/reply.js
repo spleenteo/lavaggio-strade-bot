@@ -15,27 +15,60 @@ function hm(date) {
   return `${String(p.hh).padStart(2, '0')}:${String(p.mm).padStart(2, '0')}`;
 }
 
-/** Etichetta della finestra relativa a `now` (vedi test per il formato). */
-export function windowLabel(win, now) {
+/**
+ * Categoria della finestra relativa a `now`: determina sia il formato di
+ * `windowLabel` sia se la finestra è "imminente" (per la rassicurazione).
+ * @returns {'ongoing'|'tonight'|'today'|'tomorrow'|'future'}
+ */
+function windowCategory(win, now) {
   const s = romeParts(win.start);
   const n = romeParts(now);
   const isNight = s.hh < 6;
-  const night = isNight ? `notte ${SHORT_WD[(s.weekday + 6) % 7]}→${SHORT_WD[s.weekday]}, ` : '';
-  const range = `${hm(win.start)}–${hm(win.end)}`;
-  if (win.ongoing) return `⚠️ IN CORSO ORA (${night}fino alle ${hm(win.end)})`;
+  if (win.ongoing) return 'ongoing';
   const sameDay = s.y === n.y && s.m === n.m && s.d === n.d;
   const tom = addDays(n, 1);
   const isTomorrow = s.y === tom.y && s.m === tom.m && s.d === tom.d;
-  if (isNight && (sameDay || (isTomorrow && n.hh >= 6))) return `STANOTTE (${night}${range})`;
-  if (sameDay) return `OGGI ${range}`;
-  if (isTomorrow) return `domani ${range}`;
+  if (isNight && (sameDay || (isTomorrow && n.hh >= 6))) return 'tonight';
+  if (sameDay) return 'today';
+  if (isTomorrow) return 'tomorrow';
+  return 'future';
+}
+
+/** Etichetta della finestra relativa a `now` (vedi test per il formato). */
+export function windowLabel(win, now) {
+  const s = romeParts(win.start);
+  const isNight = s.hh < 6;
+  const night = isNight ? `notte ${SHORT_WD[(s.weekday + 6) % 7]}→${SHORT_WD[s.weekday]}, ` : '';
+  const range = `${hm(win.start)}–${hm(win.end)}`;
+  const category = windowCategory(win, now);
+  if (category === 'ongoing') return `⚠️ IN CORSO ORA (${night}fino alle ${hm(win.end)})`;
+  if (category === 'tonight') return `STANOTTE (${night}${range})`;
+  if (category === 'today') return `OGGI ${range}`;
+  if (category === 'tomorrow') return `domani ${range}`;
   return `${WEEKDAY_LABEL[s.weekday]} ${s.d} ${MONTHS[s.m - 1]} (${night}${range})`;
+}
+
+/**
+ * Riga di rassicurazione esplicita sulla notte imminente, quando nessun
+ * lavaggio è in vista a breve. Lo span è la notte IN CORSO se `now` cade
+ * dopo mezzanotte e prima delle 6, altrimenti la notte in arrivo.
+ */
+function nightReassurance(now) {
+  const n = romeParts(now);
+  const inNight = n.hh < 6;
+  const today = SHORT_WD[n.weekday];
+  const other = inNight ? SHORT_WD[(n.weekday + 6) % 7] : SHORT_WD[(n.weekday + 1) % 7];
+  const span = inNight ? `${other}→${today}` : `${today}→${other}`;
+  return `🌙 Stanotte (notte ${span}): ✅ nessun lavaggio previsto.`;
 }
 
 function windowLines(schedule, now) {
   const win = nextWindow(schedule, now);
   if (!win) return ['✅ Nessun lavaggio previsto nei prossimi 90 giorni.'];
-  const lines = [`🧹 Prossimo lavaggio: <b>${windowLabel(win, now)}</b>`];
+  const lines = [];
+  const category = windowCategory(win, now);
+  if (category === 'tomorrow' || category === 'future') lines.push(nightReassurance(now));
+  lines.push(`🧹 Prossimo lavaggio: <b>${windowLabel(win, now)}</b>`);
   const after = nextWindow(schedule, win.end);
   if (after) lines.push(`📅 Poi: ${windowLabel(after, now)}`);
   return lines;
@@ -76,6 +109,8 @@ export function buildStreetReply(street, features, now) {
 
   const multi = features.length > 1;
   const lines = [`📍 <b>${esc(street.via)}</b>` + (multi ? ` — ${features.length} tratti, ${items.length} calendari` : '')];
+  const anyImminent = items.some((it) => it.win && ['ongoing', 'tonight', 'today'].includes(windowCategory(it.win, now)));
+  if (!anyImminent) lines.push(nightReassurance(now));
   for (const it of items) {
     lines.push('');
     lines.push(it.win ? `🧹 <b>${windowLabel(it.win, now)}</b>` : '✅ Nessun lavaggio previsto nei prossimi 90 giorni.');

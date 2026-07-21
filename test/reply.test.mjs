@@ -71,3 +71,51 @@ test('buildStreetReply: accorpa i tratti per calendario e ordina per urgenza', (
   assert.ok(txt.includes('da b a c'));
   assert.ok(!txt.includes('indirizzo:')); // niente raw nella vista via
 });
+
+// ── rassicurazione "stanotte nessun lavaggio" quando la finestra non è imminente ──
+
+test('buildTrattoReply: schedule lontano → rassicurazione "stanotte nessun lavaggio"', () => {
+  const lontano = { weekday: 2, weeks: [1], parity: null, start: '00:00', end: '06:00' }; // 1° martedì → 4/8
+  const match = { feature: feat('VIA PISANA', 5000, 'DA A A B', lontano), distanceMeters: 12 };
+  const txt = buildTrattoReply(match, 60, NOW, false);
+  assert.ok(txt.includes('🌙 Stanotte (notte mar→mer): ✅ nessun lavaggio previsto.'));
+});
+
+test('buildTrattoReply: schedule imminente (STANOTTE) → nessuna rassicurazione', () => {
+  const match = { feature: feat('VIA MASACCIO', 9800, 'DA MIRANDOLA A LA FARINA', notturnoMer), distanceMeters: 12 };
+  const txt = buildTrattoReply(match, 60, NOW, false);
+  assert.ok(!txt.includes('🌙'));
+});
+
+test('buildStreetReply: due gruppi entrambi lontani → UNA sola rassicurazione', () => {
+  const lontano = { weekday: 2, weeks: [1], parity: null, start: '00:00', end: '06:00' }; // 1° martedì → 4/8
+  const lontano2 = { weekday: 4, weeks: [1], parity: null, start: '00:00', end: '06:00' }; // 1° giovedì → 6/8
+  const features = [
+    feat('VIA PISANA', 5000, 'DA A A B', lontano),
+    feat('VIA PISANA', 5000, 'DA B A C', lontano2),
+  ];
+  const street = { viaId: 5000, via: 'VIA PISANA', searchName: 'via pisana', tratti: [0, 1] };
+  const txt = buildStreetReply(street, features, NOW);
+  const count = (txt.match(/🌙/g) || []).length;
+  assert.equal(count, 1);
+  assert.ok(txt.includes('🌙 Stanotte (notte mar→mer): ✅ nessun lavaggio previsto.'));
+});
+
+test('buildStreetReply: un gruppo imminente + uno lontano → nessuna rassicurazione', () => {
+  const lontano = { weekday: 2, weeks: [1], parity: null, start: '00:00', end: '06:00' }; // 1° martedì → 4/8
+  const features = [
+    feat('VIA PISANA', 5000, 'DA A A B', lontano),
+    feat('VIA PISANA', 5000, 'DA B A C', notturnoMer), // STANOTTE
+  ];
+  const street = { viaId: 5000, via: 'VIA PISANA', searchName: 'via pisana', tratti: [0, 1] };
+  const txt = buildStreetReply(street, features, NOW);
+  assert.ok(!txt.includes('🌙'));
+});
+
+test('buildTrattoReply: span notturno con query alle 01:00 → notte IN CORSO (mar→mer), non quella successiva', () => {
+  const notteInCorso = romeDate(2026, 7, 22, 1, 0); // mercoledì 01:00
+  const lontano = { weekday: 2, weeks: [1], parity: null, start: '00:00', end: '06:00' }; // 1° martedì → 4/8
+  const match = { feature: feat('VIA PISANA', 5000, 'DA A A B', lontano), distanceMeters: 12 };
+  const txt = buildTrattoReply(match, 60, notteInCorso, false);
+  assert.ok(txt.includes('(notte mar→mer)'));
+});
