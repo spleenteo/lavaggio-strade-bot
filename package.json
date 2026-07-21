@@ -11,7 +11,7 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "set-webhook": "node scripts/set-webhook.mjs",
-    "test": "node test/smoke.test.mjs"
+    "test": "node --test 'test/**/*.test.mjs'"
   },
   "devDependencies": {
     "@tmcw/togeojson": "^5.8.1",
