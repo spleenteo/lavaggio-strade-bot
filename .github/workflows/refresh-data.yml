@@ -1,0 +1,37 @@
+# Refresh settimanale dei dati "pulizia strade": scarica il KMZ del Comune,
+# lo pre-digerisce (npm run build:data, che FALLISCE se il formato upstream
+# cambia) e carica il JSON su Cloudflare KV. Il Worker vede i nuovi dati al
+# primo riciclo dell'isolate.
+#
+# Secrets richiesti (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   token con permesso "Workers KV Storage: Edit"
+#   CLOUDFLARE_ACCOUNT_ID  id dell'account (ridondante: è anche in wrangler.toml)
+name: Refresh dati pulizia strade
+
+on:
+  schedule:
+    - cron: '30 4 * * 1' # ogni lunedì alle 04:30 UTC (06:30 italiane)
+  workflow_dispatch: {} # lancio manuale dal tab Actions
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      - name: Scarica e pre-digerisce il dataset
+        run: npm run build:data
+
+      - name: Carica su Cloudflare KV
+        run: npm run push:data
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

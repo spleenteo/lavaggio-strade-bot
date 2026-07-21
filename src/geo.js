@@ -1,7 +1,8 @@
 // Geometria PURA (nessuna dipendenza). Calcola la via più vicina a un punto,
 // usando una proiezione equirettangolare locale (accurata a scala urbana) per
 // misurare le distanze in metri. Ogni feature ha:
-//   { name, weekdays, ordinals, times, raw, lines: [[[lon,lat],...]], bbox:[minLon,minLat,maxLon,maxLat] }
+//   { via, viaId, searchName, tratto, schedule, raw, lines: [[[lon,lat],...]], bbox:[minLon,minLat,maxLon,maxLat] }
+// (a questo modulo interessano solo `lines` e `bbox`)
 
 const R = 6371000; // raggio terrestre (m)
 

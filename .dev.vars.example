@@ -1,0 +1,5 @@
+# Copia questo file in .dev.vars (gitignored) e compila i valori.
+# Serve per lo sviluppo locale (npm run dev) e per registrare il webhook
+# (npm run set-webhook legge BOT_TOKEN e WEBHOOK_SECRET dall'ambiente).
+BOT_TOKEN=""
+WEBHOOK_SECRET=""
