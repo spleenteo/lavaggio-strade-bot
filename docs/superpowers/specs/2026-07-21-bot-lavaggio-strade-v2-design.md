@@ -69,7 +69,7 @@ nextWindow(schedule, now) → { start: Date, end: Date, ongoing: boolean } | nul
 ```
 
 - Itera **date di calendario locali Europe/Rome** (rappresentate come {y,m,d} con aritmetica di calendario, *non* timestamp +24h: sicurezza DST), orizzonte 90 giorni.
-- Match del giorno: weekday + flag settimana-del-mese + parità settimana ISO (se presente).
+- Match del giorno: weekday + flag settimana-del-mese + parità della data del mese (se presente — vedi Rischi, punto 1, per l'esito della verifica).
 - Primo giorno con finestra `end > now` → risultato; `ongoing = start ≤ now`.
 - Conversione locale→istante assoluto tramite offset ricavato con `Intl.DateTimeFormat` e `timeZone: 'Europe/Rome'` (disponibile sui Workers, nessuna dipendenza).
 - La risposta usa due chiamate: prossima finestra, poi `nextWindow(schedule, end_della_prima)`.
@@ -101,7 +101,11 @@ nextWindow(schedule, now) → { start: Date, end: Date, ongoing: boolean } | nul
 
 ## Rischi e verifiche previste
 
-1. **Parità pari/dispari**: l'ipotesi "settimane ISO dell'anno" va verificata in implementazione confrontando 2–3 vie interessate con il lookup del sito Alia. Mitigazione permanente: il `raw` ufficiale è sempre visibile nel dettaglio tratto e ovunque campeggia "fa fede il cartello in strada".
+1. **Parità pari/dispari — ESITO VERIFICA (Task 8, 2026-07-21 → aggiornato lo stesso giorno)**: verificata con il lookup ufficiale del servizio pulizia strade Alia (`https://www2.aliaserviziambientali.it/puliziastrade/` — form "cerca via" e "cerca per data", via gli endpoint AJAX `main/get_indirizzi`, `main/get_tratti`, `pulizie/calcola_data`, `pulizie/calcola_data_all` che alimentano quella pagina), su **4 tratti** con `parity` non nullo, weekday diversi e valori di flag diversi (2 `pari`, 2 `dispari`): BORGO ALLEGRI · DA AGNOLO A PIETRAPIANA (giovedì, pari), BORGO PINTI · DA MATTEOTTI A ALFANI (venerdì, dispari), BORGO OGNISSANTI (sabato, pari), LUNGARNO AMERIGO VESPUCCI · DA VENETO A CURTATONE (domenica, dispari). Per ciascuno sono state confrontate ~14 date settimanali consecutive (23/7–25/10/2026, 56 punti totali) con l'elenco reale delle vie interessate in quella data.
+
+   Un primo giro di verifica ha escluso sia l'ipotesi codificata originariamente (settimana ISO dell'anno, `isoWeek(day) % 2 === 0`: sbagliava la prossima finestra per tutti i tratti testati) sia l'ipotesi alternativa "settimane del mese" prevista come fallback dal piano (`Math.ceil(day.d / 7) % 2 === 0`: si adattava ai 56 punti anche peggio, 15/56 contro 23/56 dell'ipotesi ISO). Il committente ha poi segnalato una terza ipotesi, confermata dai cartelli Alia: **`pari`/`dispari` è la parità della DATA del mese** (es. "giovedì pari" = i giovedì che cadono il 2, 16, 30…), non la settimana. Riverificata sugli stessi 56 punti: **56/56 (100%), zero eccezioni**. Spiega anche l'anomalia di fine luglio/agosto osservata nei primi due giri: al cambio mese la parità della data non segue un ciclo di 7 giorni, quindi due occorrenze consecutive dello stesso giorno della settimana possono avere la stessa parità (es. giovedì 30/7 e 6/8/2026, entrambi "pari" — verificato anche live come test discriminante: `calcola_data_all` restituisce Borgo Allegri per entrambe le date, cosa impossibile sotto qualunque ipotesi di alternanza settimanale).
+
+   **Decisione: ipotesi "data del mese" CONFERMATA e implementata.** `dayMatches` in `src/schedule-core.js` ora usa `day.d % 2 === 0` (parità della data) al posto della settimana ISO; `isoWeek` è stato rimosso (codice morto, nessun consumatore). Rimosso anche il caveat di UI "calendario a settimane alterne" aggiunto in via cautelativa durante l'esito precedente (non più necessario: la semantica è verificata, le date dei tratti con `parity` sono affidabili come le altre). Test aggiornati in `test/schedule.test.mjs` con i casi reali verificati (Borgo Allegri, Borgo Pinti, incluso il caso discriminante del cambio mese). Mitigazione generale invariata: il testo `raw` ufficiale resta sempre visibile e il disclaimer "fa sempre fede il cartello in strada" compare in ogni risposta.
 2. **Deriva formato upstream**: coperta dalla validazione in build (fail < 90% parsing) e dalla statistica di copertura in `/info`.
 3. **Dimensione blob** (~3,2 MB, in calo con la pulizia di `raw`): ampiamente dentro i limiti KV (25 MB/valore) e isolate (128 MB).
 

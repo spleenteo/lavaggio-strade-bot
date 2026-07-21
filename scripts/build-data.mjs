@@ -10,7 +10,8 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import AdmZip from 'adm-zip';
 import { DOMParser } from '@xmldom/xmldom';
 import { kml as kmlToGeoJSON } from '@tmcw/togeojson';
-import { parseProps } from '../src/schedule-core.js';
+import { extractFields, parseSchedule, officialRaw } from '../src/parse-dataset.js';
+import { normalizeName } from '../src/search.js';
 import { bboxOfLines } from '../src/geo.js';
 
 const DATA_URL = process.env.DATA_URL || 'https://datigis.comune.fi.it/kml/pulizia_strade.kmz';
@@ -64,36 +65,58 @@ async function main() {
   const dom = new DOMParser().parseFromString(kmlText, 'text/xml');
   const geojson = kmlToGeoJSON(dom);
 
-  const features = [];
+  // Un record per (via, tratto, calendario): le feature duplicate si fondono.
+  const byKey = new Map();
+  let total = 0;
+  let ok = 0;
   for (const f of geojson.features) {
     const lines = geometryToLines(f.geometry);
     if (!lines.length) continue;
-    const props = f.properties || {};
-    const parsed = parseProps(props);
-    const name = props.name || props.Name || props.via || props.VIA || props.nome || props.NOME || null;
-    features.push({
-      name,
-      lines,
-      bbox: bboxOfLines(lines),
-      weekdays: parsed.weekdays,
-      ordinals: parsed.ordinals,
-      times: parsed.times,
-      raw: parsed.raw,
-    });
+    total++;
+    const fields = extractFields(f.properties || {});
+    const schedule = parseSchedule(fields);
+    if (!schedule || !fields.indirizzo || !fields.codice_via) continue;
+    ok++;
+    const via = fields.indirizzo.trim();
+    const tratto = (fields.tratto_strada || '').trim();
+    const key = `${fields.codice_via}|${tratto}|${JSON.stringify(schedule)}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        via,
+        viaId: Number(fields.codice_via),
+        searchName: normalizeName(via),
+        tratto,
+        schedule,
+        lines: [],
+        bbox: null,
+        raw: officialRaw(fields),
+      });
+    }
+    byKey.get(key).lines.push(...lines);
   }
+  const features = [...byKey.values()];
+  for (const f of features) f.bbox = bboxOfLines(f.lines);
+
+  // Validazione: se il formato upstream cambia, la build DEVE fallire.
+  const vieUniche = new Set(features.map((f) => f.viaId)).size;
+  const coverage = total ? ok / total : 0;
+  console.log(`Parsing: ${ok}/${total} record (${(coverage * 100).toFixed(1)}%) → ${features.length} tratti, ${vieUniche} vie.`);
+  if (vieUniche < 500) throw new Error(`Solo ${vieUniche} vie (< 500): formato upstream cambiato?`);
+  if (coverage < 0.9) throw new Error(`Copertura parsing ${(coverage * 100).toFixed(1)}% (< 90%): formato upstream cambiato?`);
 
   const out = {
     generatedAt: new Date().toISOString(),
     source: DATA_URL,
     license: 'CC-BY-NC-SA 4.0 - Comune di Firenze (fonte Alia)',
     count: features.length,
+    parseOk: ok,
+    parseTotal: total,
     features,
   };
 
   mkdirSync('data', { recursive: true });
   writeFileSync(OUT, JSON.stringify(out));
-  const withDays = features.filter((f) => f.weekdays.length).length;
-  console.log(`✓ Scritte ${features.length} vie in ${OUT} (${withDays} con giorni riconosciuti).`);
+  console.log(`✓ Scritte ${features.length} voci (${vieUniche} vie) in ${OUT}.`);
   console.log(`  Dimensione: ${(JSON.stringify(out).length / 1024 / 1024).toFixed(2)} MB`);
 }
 

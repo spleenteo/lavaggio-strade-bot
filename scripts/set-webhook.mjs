@@ -37,7 +37,7 @@ async function main() {
   }
   const payload = {
     url,
-    allowed_updates: ['message', 'edited_message'],
+    allowed_updates: ['message', 'edited_message', 'callback_query'],
     drop_pending_updates: true,
   };
   if (secret) payload.secret_token = secret;
