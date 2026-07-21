@@ -47,7 +47,7 @@ Flusso dati: `KMZ Comune → build-data.mjs (parse) → data/pulizia_strade.json
 | `src/worker.js` | Entry del Worker: routing webhook, comandi (`/start`, `/info`), posizione, ricerca testuale, bottoni inline (`callback_query`), chiamate a Telegram, cache KV, check `WEBHOOK_SECRET`. |
 | `src/geo.js` | Geometria pura: tratto più vicino a un punto. Proiezione equirettangolare locale + pruning via lower-bound sul `bbox`. |
 | `src/schedule-core.js` | Utilità di fuso Europe/Rome (`romeParts`, `romeDate`, `addDays`, `isoWeek`) e `nextWindow(schedule, now)`: prossima finestra di lavaggio su un orizzonte di 90 giorni. |
-| `src/search.js` | Ricerca vie per nome: normalizzazione (`normalizeName`), indice per via (`buildIndex`), punteggio esatto/prefisso/sottostringa/fuzzy (Levenshtein) in `searchStreets`/`closestStreets`. |
+| `src/search.js` | Ricerca vie per nome: normalizzazione (`normalizeName`), indice per via (`buildIndex`). `searchStreets` punteggia esatto/prefisso/sottostringa/fuzzy (Levenshtein); `closestStreets` (suggerimenti "forse intendevi") usa solo la distanza fuzzy, senza soglia. |
 | `src/parse-dataset.js` | Estrazione dei campi strutturati dalla description KML (`extractFields`, `parseSchedule`, `officialRaw`) — usato solo in build. |
 | `src/reply.js` | Costruzione dei messaggi Telegram in HTML: dettaglio tratto (`buildTrattoReply`), vista via accorpata per calendario (`buildStreetReply`), etichetta finestra (`windowLabel`: STANOTTE / OGGI / domani / data futura / IN CORSO ORA). |
 
