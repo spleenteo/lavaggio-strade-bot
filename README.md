@@ -197,4 +197,10 @@ test/                test automatici (node --test)
   un dataset equivalente. Dimmi quale comune e cerco la fonte.
 - **Sicurezza:** il Worker accetta solo POST con l'header segreto corretto
   (`WEBHOOK_SECRET`), così nessun altro può pilotare il bot.
-- **Licenza dati:** CC-BY-NC-SA 4.0 — Comune di Firenze (fonte Alia). Uso personale ok.
+## Licenza
+
+- **Codice:** [MIT](LICENSE) — © 2026 Matteo Papadopoulos. Usalo, forkalo, adattalo al tuo comune.
+- **Dati:** [CC-BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.it) — Comune di
+  Firenze (fonte Alia Servizi Ambientali). La licenza dei dati è **non commerciale**: se riusi questo
+  progetto con gli stessi open data, l'uso deve restare non commerciale e con attribuzione. Il codice
+  in sé (MIT) non ha questo vincolo: con un'altra fonte dati valgono solo i termini di quella fonte.
