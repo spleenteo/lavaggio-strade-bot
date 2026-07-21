@@ -51,10 +51,7 @@ function tokenDistance(name, query) {
   return total;
 }
 
-/** Vie ordinate per pertinenza: esatto > prefisso > sottostringa > fuzzy (≤2). */
-export function searchStreets(streets, query, limit = 6) {
-  const q = normalizeName(query);
-  if (!q) return [];
+function rankStreets(streets, q, limit) {
   const scored = [];
   for (const s of streets) {
     let score = null;
@@ -69,6 +66,34 @@ export function searchStreets(streets, query, limit = 6) {
   }
   scored.sort((a, b) => a.score - b.score || a.s.searchName.localeCompare(b.s.searchName));
   return scored.slice(0, limit).map((x) => x.s);
+}
+
+/**
+ * Rimuove dalla query i token che sembrano numeri civici ("23", "23a";
+ * "15/r" normalizza in "15 r" quindi si scarta anche la "r" residua).
+ * Torna null se non c'era nulla da scartare o non resta nulla di utile.
+ */
+function stripCivic(q) {
+  const kept = q.split(' ').filter((t) => !/^\d+[a-z]{0,2}$/.test(t));
+  if (kept.join(' ') === q) return null;
+  const cleaned = kept.filter((t) => t !== 'r').join(' ');
+  return cleaned || null;
+}
+
+/**
+ * Vie ordinate per pertinenza: esatto > prefisso > sottostringa > fuzzy (≤2).
+ * Due passate: prima la query com'è (così "via ragazzi del 99" funziona);
+ * se non trova nulla riprova scartando i probabili numeri civici.
+ */
+export function searchStreets(streets, query, limit = 6) {
+  const q = normalizeName(query);
+  if (!q) return [];
+  // Una query di soli numeri (es. "23") è un civico senza via: mai un match.
+  if (q.split(' ').every((t) => /^\d+[a-z]{0,2}$/.test(t))) return [];
+  const res = rankStreets(streets, q, limit);
+  if (res.length) return res;
+  const cleaned = stripCivic(q);
+  return cleaned ? rankStreets(streets, cleaned, limit) : [];
 }
 
 /** I nomi più vicini in assoluto (per "Forse intendevi…"). */

@@ -53,3 +53,30 @@ test('closestStreets: suggerimenti senza soglia', () => {
   assert.equal(r[0].viaId, 400);
   assert.equal(r.length, 3);
 });
+
+// --- Numeri civici nella query (retry a due passate) ---
+
+const STREETS_99 = buildIndex([
+  ...FEATURES,
+  { via: "VIA RAGAZZI DEL '99", viaId: 111, searchName: 'via ragazzi del 99' },
+]);
+
+test('searchStreets: ignora il numero civico se la query piena non matcha', () => {
+  const r = searchStreets(STREETS_99, 'borgo allegri 23');
+  assert.equal(r.length, 1);
+  assert.equal(r[0].viaId, 400);
+});
+
+test('searchStreets: civico con lettera o barra ("15/r", "23a")', () => {
+  assert.equal(searchStreets(STREETS_99, 'via masaccio 15/r')[0].viaId, 9800);
+  assert.equal(searchStreets(STREETS_99, 'Borgo Allegri 23a')[0].viaId, 400);
+});
+
+test('searchStreets: le vie con numeri veri nel nome restano cercabili', () => {
+  const r = searchStreets(STREETS_99, "via ragazzi del '99");
+  assert.equal(r[0].viaId, 111); // passata piena: il "99" NON viene scartato
+});
+
+test('searchStreets: query di soli numeri non matcha nulla', () => {
+  assert.deepEqual(searchStreets(STREETS_99, '23'), []);
+});
