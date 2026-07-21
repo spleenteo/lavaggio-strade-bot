@@ -169,3 +169,36 @@ export function isoWeek({ y, m, d }) {
   firstThu.setUTCDate(firstThu.getUTCDate() - ((firstThu.getUTCDay() + 6) % 7) + 3);
   return 1 + Math.round((t - firstThu) / (7 * 86400000));
 }
+
+const parseHM = (s) => s.split(':').map(Number);
+
+function dayMatches(schedule, day) {
+  const wd = new Date(Date.UTC(day.y, day.m - 1, day.d, 12)).getUTCDay();
+  if (wd !== schedule.weekday) return false;
+  if (!schedule.weeks.includes(Math.ceil(day.d / 7))) return false; // n-esima occorrenza del giorno nel mese
+  if (schedule.parity) {
+    const even = isoWeek(day) % 2 === 0;
+    if ((schedule.parity === 'even') !== even) return false;
+  }
+  return true;
+}
+
+/**
+ * Prossima finestra di lavaggio del tratto, in ora locale Europe/Rome.
+ * @returns {{start: Date, end: Date, ongoing: boolean}|null}
+ */
+export function nextWindow(schedule, now, horizonDays = 90) {
+  const p = romeParts(now);
+  let day = { y: p.y, m: p.m, d: p.d };
+  for (let i = 0; i < horizonDays; i++) {
+    if (dayMatches(schedule, day)) {
+      const [sh, sm] = parseHM(schedule.start);
+      const [eh, em] = parseHM(schedule.end);
+      const start = romeDate(day.y, day.m, day.d, sh, sm);
+      const end = romeDate(day.y, day.m, day.d, eh, em);
+      if (end > now) return { start, end, ongoing: start <= now };
+    }
+    day = addDays(day, 1);
+  }
+  return null;
+}
