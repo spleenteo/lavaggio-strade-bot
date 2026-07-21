@@ -1,0 +1,22 @@
+{
+  "name": "cf-lavaggio-strade-bot",
+  "version": "1.0.0",
+  "description": "Bot Telegram su Cloudflare Workers: condividi la posizione e scopri se è previsto il lavaggio/spazzamento strade (open data Comune di Firenze / Alia).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build:data": "node scripts/build-data.mjs",
+    "push:data": "wrangler kv key put --binding=STREETS_KV pulizia_strade --path=data/pulizia_strade.json",
+    "push:data:local": "wrangler kv key put --binding=STREETS_KV pulizia_strade --path=data/pulizia_strade.json --local",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "set-webhook": "node scripts/set-webhook.mjs",
+    "test": "node test/smoke.test.mjs"
+  },
+  "devDependencies": {
+    "@tmcw/togeojson": "^5.8.1",
+    "@xmldom/xmldom": "^0.9.7",
+    "adm-zip": "^0.5.14",
+    "wrangler": "^3.90.0"
+  }
+}
