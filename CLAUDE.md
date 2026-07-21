@@ -20,7 +20,7 @@ npm test                   # node --test (auto-discovery) — runner nativo Node
 
 - `set-webhook` legge `BOT_TOKEN`, `WORKER_URL`, `WEBHOOK_SECRET` dall'ambiente; `node scripts/set-webhook.mjs delete` rimuove il webhook.
 - `override` della sorgente dati: `DATA_URL=... npm run build:data` (per puntare a un altro comune/dataset).
-- **Test**: 5 file in `test/` (`parse`, `schedule`, `search`, `reply`, `worker`), 38 test totali, tutti con `node:test`/`node:assert` nativi. Per un caso isolato: `node --test test/schedule.test.mjs`, oppure `node --test --test-name-pattern="nextWindow"` per filtrare per nome.
+- **Test**: 5 file in `test/` (`parse`, `schedule`, `search`, `reply`, `worker`), 41 test totali, tutti con `node:test`/`node:assert` nativi. Per un caso isolato: `node --test test/schedule.test.mjs`, oppure `node --test --test-name-pattern="nextWindow"` per filtrare per nome.
 
 ## Architettura (il punto chiave)
 
