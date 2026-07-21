@@ -29,23 +29,15 @@ test('windowLabel: query notturna (00:00–05:59) non deve etichettare STANOTTE 
   assert.equal(windowLabel(win, queryNotturna), 'domani 00:00–06:00');
 });
 
-test('caveat settimane alterne: presente con parity, assente senza', () => {
+test('nessun caveat di parità: la semantica pari/dispari è confermata, le date sono affidabili come le altre', () => {
   const paritySchedule = { weekday: 3, weeks: ALL, parity: 'even', start: '00:00', end: '06:00' };
   const matchParity = { feature: feat('VIA PARI', 7000, 'DA A A B', paritySchedule), distanceMeters: 5 };
   const trattoParityTxt = buildTrattoReply(matchParity, 60, NOW, false);
-  assert.ok(trattoParityTxt.includes('settimane alterne'));
-
-  const matchNoParity = { feature: feat('VIA DISPARI', 7001, 'DA A A B', notturnoMer), distanceMeters: 5 };
-  const trattoNoParityTxt = buildTrattoReply(matchNoParity, 60, NOW, false);
-  assert.ok(!trattoNoParityTxt.includes('settimane alterne'));
+  assert.ok(!trattoParityTxt.includes('settimane alterne'));
 
   const streetParity = { viaId: 7000, via: 'VIA PARI', searchName: 'via pari', tratti: [0] };
   const streetParityTxt = buildStreetReply(streetParity, [feat('VIA PARI', 7000, 'DA A A B', paritySchedule)], NOW);
-  assert.ok(streetParityTxt.includes('settimane alterne'));
-
-  const streetNoParity = { viaId: 7001, via: 'VIA DISPARI', searchName: 'via dispari', tratti: [0] };
-  const streetNoParityTxt = buildStreetReply(streetNoParity, [feat('VIA DISPARI', 7001, 'DA A A B', notturnoMer)], NOW);
-  assert.ok(!streetNoParityTxt.includes('settimane alterne'));
+  assert.ok(!streetParityTxt.includes('settimane alterne'));
 });
 
 test('buildTrattoReply: dettaglio con tratto, raw e prossime finestre', () => {

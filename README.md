@@ -42,9 +42,11 @@ Telegram ──POST webhook──► Cloudflare Worker ───────┘ 
 - **Nome della via** (es. `via masaccio`) → tutti i tratti della via,
   accorpati per calendario; se più vie corrispondono compaiono dei bottoni.
 - Il lavaggio può essere **notturno (00:00–06:00) o diurno**: il bot considera
-  entrambi. Le settimane "pari/dispari" del calendario sono interpretate come
-  settimane ISO dell'anno (ipotesi **non confermata con certezza** dalla
-  verifica online, vedi spec di design; fa sempre fede il cartello in strada).
+  entrambi. Alcuni tratti (~290 su 1801) hanno calendario "pari/dispari": è
+  la **parità della data del mese** (es. «giovedì pari» = i giovedì che
+  cadono il 2, 16, 30…), non la settimana — semantica verificata (56/56) con
+  il lookup ufficiale Alia il 2026-07-21, vedi spec di design. Fa comunque
+  sempre fede il cartello in strada.
 
 ---
 

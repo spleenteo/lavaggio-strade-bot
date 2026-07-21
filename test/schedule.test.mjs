@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { romeParts, romeDate, addDays, isoWeek, nextWindow } from '../src/schedule-core.js';
+import { romeParts, romeDate, addDays, nextWindow } from '../src/schedule-core.js';
 
 test('romeParts: 23:30 UTC d\'estate è già il giorno dopo a Roma', () => {
   const p = romeParts(new Date('2026-07-21T23:30:00Z'));
@@ -21,12 +21,6 @@ test('addDays: aritmetica di calendario', () => {
   assert.deepEqual(addDays({ y: 2026, m: 7, d: 31 }, 1), { y: 2026, m: 8, d: 1 });
   assert.deepEqual(addDays({ y: 2026, m: 12, d: 31 }, 1), { y: 2027, m: 1, d: 1 });
   assert.deepEqual(addDays({ y: 2026, m: 3, d: 28 }, 1), { y: 2026, m: 3, d: 29 }); // DST: nessun salto di giorno
-});
-
-test('isoWeek: valori noti', () => {
-  assert.equal(isoWeek({ y: 2026, m: 1, d: 1 }), 1);   // 1 gen 2026 è giovedì → settimana 1
-  assert.equal(isoWeek({ y: 2026, m: 1, d: 5 }), 2);   // lunedì successivo
-  assert.equal(isoWeek({ y: 2025, m: 12, d: 29 }), 1); // lunedì della settimana 1 del 2026
 });
 
 const ALL = [1, 2, 3, 4, 5];
@@ -66,15 +60,26 @@ test('nextWindow: 5ª settimana del mese', () => {
   assert.equal(w.start.toISOString(), romeDate(2026, 7, 31, 0, 0).toISOString());
 });
 
-test('nextWindow: parità → occorrenze ogni 14 giorni, even e odd alternate', () => {
-  const even = { weekday: 4, weeks: ALL, parity: 'even', start: '00:00', end: '06:00' };
-  const odd = { weekday: 4, weeks: ALL, parity: 'odd', start: '00:00', end: '06:00' };
+// Parità = parità della DATA del mese (semantica dei cartelli Alia: "giovedì pari"
+// = i giovedì che cadono il 2, 16, 30…), NON la settimana ISO dell'anno. Verificato
+// 56/56 sul lookup ufficiale Alia il 2026-07-21 (vedi spec, sezione Rischi).
+test('nextWindow: parità (data pari) — Borgo Allegri, due giovedì consecutivi entrambi pari al cambio mese', () => {
+  const s = { weekday: 4, weeks: ALL, parity: 'even', start: '00:00', end: '06:00' };
   const now = romeDate(2026, 7, 21, 12, 0);
-  const e1 = nextWindow(even, now);
-  const e2 = nextWindow(even, e1.end);
-  assert.equal(e2.start - e1.start, 14 * 86400000);
-  const o1 = nextWindow(odd, now);
-  assert.equal(Math.abs(o1.start - e1.start), 7 * 86400000); // giovedì adiacente
+  const w1 = nextWindow(s, now);
+  assert.equal(w1.start.toISOString(), romeDate(2026, 7, 30, 0, 0).toISOString()); // salta gio 23/7 (dispari)
+  const w2 = nextWindow(s, w1.end);
+  // caso discriminante: 30/7 e 6/8 sono giovedì CONSECUTIVI, entrambi con data pari.
+  assert.equal(w2.start.toISOString(), romeDate(2026, 8, 6, 0, 0).toISOString());
+});
+
+test('nextWindow: parità (data dispari) — Borgo Pinti, salta il venerdì con data pari', () => {
+  const s = { weekday: 5, weeks: ALL, parity: 'odd', start: '00:00', end: '06:00' };
+  const now = romeDate(2026, 8, 1, 12, 0);
+  const w1 = nextWindow(s, now);
+  assert.equal(w1.start.toISOString(), romeDate(2026, 8, 7, 0, 0).toISOString());
+  const w2 = nextWindow(s, w1.end);
+  assert.equal(w2.start.toISOString(), romeDate(2026, 8, 21, 0, 0).toISOString()); // salta il 14/8 (pari)
 });
 
 test('nextWindow: attraversa il cambio d\'ora (29/3/2026, finestra reale di 5 ore)', () => {

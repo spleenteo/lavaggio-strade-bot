@@ -43,15 +43,6 @@ export function addDays({ y, m, d }, n) {
   return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
 }
 
-/** Numero di settimana ISO 8601 di una data di calendario. */
-export function isoWeek({ y, m, d }) {
-  const t = new Date(Date.UTC(y, m - 1, d));
-  t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7) + 3); // giovedì della settimana
-  const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
-  firstThu.setUTCDate(firstThu.getUTCDate() - ((firstThu.getUTCDay() + 6) % 7) + 3);
-  return 1 + Math.round((t - firstThu) / (7 * 86400000));
-}
-
 const parseHM = (s) => s.split(':').map(Number);
 
 function dayMatches(schedule, day) {
@@ -59,7 +50,13 @@ function dayMatches(schedule, day) {
   if (wd !== schedule.weekday) return false;
   if (!schedule.weeks.includes(Math.ceil(day.d / 7))) return false; // n-esima occorrenza del giorno nel mese
   if (schedule.parity) {
-    const even = isoWeek(day) % 2 === 0;
+    // "pari"/"dispari" = parità della DATA del mese (semantica dei cartelli Alia:
+    // es. "giovedì pari" = i giovedì che cadono il 2, 16, 30…), NON la settimana
+    // ISO dell'anno. Verificato 56/56 sul lookup ufficiale Alia il 2026-07-21
+    // (vedi spec, sezione Rischi), incluso il caso discriminante del cambio mese:
+    // due occorrenze consecutive dello stesso giorno della settimana possono
+    // risultare entrambe "pari" (es. giovedì 30/7 e 6/8/2026).
+    const even = day.d % 2 === 0;
     if ((schedule.parity === 'even') !== even) return false;
   }
   return true;
@@ -67,6 +64,8 @@ function dayMatches(schedule, day) {
 
 /**
  * Prossima finestra di lavaggio del tratto, in ora locale Europe/Rome.
+ * Match del giorno: weekday + n-esima occorrenza nel mese + parità della data
+ * del mese (se presente) — vedi `dayMatches`.
  * @returns {{start: Date, end: Date, ongoing: boolean}|null}
  */
 export function nextWindow(schedule, now, horizonDays = 90) {

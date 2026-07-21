@@ -9,7 +9,6 @@ function esc(s) {
 
 const SHORT_WD = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 const DISCLAIMER = '<i>Dati: open data Comune di Firenze (fonte Alia). Fa sempre fede il cartello in strada.</i>';
-const PARITY_CAVEAT = '⚠️ <i>Calendario a settimane alterne ("pari/dispari"): data indicativa, verifica il cartello.</i>';
 
 function hm(date) {
   const p = romeParts(date);
@@ -39,7 +38,6 @@ function windowLines(schedule, now) {
   const lines = [`🧹 Prossimo lavaggio: <b>${windowLabel(win, now)}</b>`];
   const after = nextWindow(schedule, win.end);
   if (after) lines.push(`📅 Poi: ${windowLabel(after, now)}`);
-  if (schedule.parity) lines.push(PARITY_CAVEAT);
   return lines;
 }
 
@@ -86,7 +84,6 @@ export function buildStreetReply(street, features, now) {
       const after = nextWindow(it.schedule, it.win.end);
       if (after) lines.push(`   <i>poi: ${windowLabel(after, now)}</i>`);
     }
-    if (it.schedule.parity) lines.push(PARITY_CAVEAT);
   }
   lines.push('', DISCLAIMER);
   return lines.join('\n');
